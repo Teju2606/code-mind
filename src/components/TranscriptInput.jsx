@@ -1,7 +1,13 @@
 import React, { useState, useRef } from 'react';
 import VoiceRecorder from './VoiceRecorder';
 
-export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMeetingTranscript, onSelectAction }) {
+export default function TranscriptInput({
+  meetings,
+  onProcessMeeting,
+  onDeleteMeeting,
+  onSelectMeetingTranscript,
+  onSelectAction
+}) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [transcript, setTranscript] = useState('');
@@ -9,8 +15,32 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
   const [lastExtractedItems, setLastExtractedItems] = useState(null);
   const [processedMeetingInfo, setProcessedMeetingInfo] = useState(null);
   const [selectedPastMeeting, setSelectedPastMeeting] = useState(null);
+  const [meetingToDelete, setMeetingToDelete] = useState(null);
 
   const intakeFormRef = useRef(null);
+
+  // Trigger delete confirmation
+  const handleDeleteClick = (meeting) => {
+    setMeetingToDelete(meeting);
+  };
+
+  // Confirm delete meeting and related action items
+  const handleConfirmDelete = async () => {
+    if (!meetingToDelete) return;
+    try {
+      if (onDeleteMeeting) {
+        await onDeleteMeeting(meetingToDelete.id);
+      }
+      if (selectedPastMeeting?.id === meetingToDelete.id) {
+        setSelectedPastMeeting(null);
+      }
+    } catch (err) {
+      console.error('Error in handleDeleteMeeting:', err);
+    } finally {
+      setMeetingToDelete(null);
+    }
+  };
+
 
   // Apply transcript recorded from VoiceRecorder
   const handleApplyVoiceTranscript = (voiceText) => {
@@ -319,11 +349,11 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
             <table className="enterprise-table">
               <thead>
                 <tr>
-                  <th style={{ width: '30%' }}>Meeting Title</th>
-                  <th style={{ width: '15%' }}>Date</th>
-                  <th style={{ width: '22%' }}>Attendees</th>
-                  <th style={{ width: '23%' }}>Summary</th>
-                  <th style={{ width: '10%', textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '28%' }}>Meeting Title</th>
+                  <th style={{ width: '14%' }}>Date</th>
+                  <th style={{ width: '20%' }}>Attendees</th>
+                  <th style={{ width: '22%' }}>Summary</th>
+                  <th style={{ width: '16%', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,7 +376,7 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
                   </tr>
                 ) : (
                   meetings.map((m) => (
-                    <tr key={m.id} className="table-row-hover">
+                    <tr key={m.id} className="table-row-hover" id={`meeting-row-${m.id}`}>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         <div className="meeting-archive-title-wrap">
                           <span className="archive-title-text">{m.title}</span>
@@ -377,16 +407,35 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-secondary btn-sm transcript-toggle-btn"
-                          onClick={() => setSelectedPastMeeting(selectedPastMeeting?.id === m.id ? null : m)}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                          <span>{selectedPastMeeting?.id === m.id ? 'Hide' : 'Transcript'}</span>
-                        </button>
+                        <div className="meeting-actions-row">
+                          <button
+                            id={`btn-transcript-meeting-${m.id}`}
+                            className="btn btn-secondary btn-sm transcript-toggle-btn"
+                            onClick={() => setSelectedPastMeeting(selectedPastMeeting?.id === m.id ? null : m)}
+                            title="View Transcript"
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <span>{selectedPastMeeting?.id === m.id ? 'Hide' : 'Transcript'}</span>
+                          </button>
+
+                          <button
+                            id={`btn-delete-meeting-${m.id}`}
+                            className="btn btn-danger-outline btn-sm delete-meeting-btn"
+                            onClick={() => handleDeleteClick(m)}
+                            title={`Delete ${m.title}`}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -421,6 +470,77 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
           )}
         </div>
       </div>
+
+      {/* Delete Meeting Confirmation Dialog Modal */}
+      {meetingToDelete && (
+        <div
+          className="modal-backdrop"
+          id="delete-meeting-modal-backdrop"
+          onClick={() => setMeetingToDelete(null)}
+        >
+          <div
+            className="modal-container delete-confirm-modal"
+            id="delete-meeting-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
+            <div className="modal-header delete-modal-header">
+              <div className="delete-modal-icon-badge">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 id="delete-modal-title" className="delete-modal-title">Delete Meeting</h3>
+                <p className="delete-modal-subtitle">Permanent action • SQLite Database</p>
+              </div>
+            </div>
+
+            <div className="modal-body delete-modal-body">
+              <p className="delete-confirm-prompt" id="delete-confirm-prompt-message">
+                Are you sure you want to delete this meeting?
+              </p>
+
+              <div className="delete-meeting-info-card">
+                <div className="delete-info-title">{meetingToDelete.title}</div>
+                <div className="delete-info-meta">
+                  <span>📅 {meetingToDelete.date}</span>
+                  <span>🏢 {meetingToDelete.department || 'General'}</span>
+                </div>
+              </div>
+
+              <p className="delete-warning-subtext">
+                Deleting this meeting will also permanently delete all of its extracted action items and audit trail records from the SQLite database.
+              </p>
+            </div>
+
+            <div className="modal-footer delete-modal-footer">
+              <button
+                id="btn-cancel-delete-meeting"
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setMeetingToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                id="btn-confirm-delete-meeting"
+                type="button"
+                className="btn btn-danger"
+                onClick={handleConfirmDelete}
+              >
+                Delete Meeting
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

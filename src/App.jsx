@@ -8,7 +8,8 @@ import {
   fetchMeetings,
   fetchActionItems,
   processMeetingApi,
-  updateActionItemStatusApi
+  updateActionItemStatusApi,
+  deleteMeetingApi
 } from './api';
 
 export default function App() {
@@ -69,6 +70,36 @@ export default function App() {
     }
   };
 
+  // Handler for deleting meeting and its related action items from SQLite database
+  const handleDeleteMeeting = async (meetingId) => {
+    const meetingToDelete = meetings.find(m => m.id === meetingId || m.db_id === meetingId);
+    const dbId = meetingToDelete?.db_id || (typeof meetingId === 'string' ? parseInt(meetingId.replace('mtg-', '')) : meetingId);
+    const meetingTitle = meetingToDelete?.title || 'Meeting';
+
+    try {
+      await deleteMeetingApi(meetingId);
+
+      // Update meetings and action items state
+      setMeetings(prev => prev.filter(m => m.id !== meetingId && m.db_id !== dbId));
+      setActionItems(prev => prev.filter(item => 
+        item.meetingId !== meetingId && 
+        item.meeting_id !== dbId && 
+        item.meetingTitle !== meetingTitle
+      ));
+
+      // If active modal was for this action item, close it
+      if (selectedActionItem && (selectedActionItem.meetingId === meetingId || selectedActionItem.meeting_id === dbId || selectedActionItem.meetingTitle === meetingTitle)) {
+        setSelectedActionItem(null);
+      }
+
+      showToast(`Meeting "${meetingTitle}" and related action items deleted.`);
+    } catch (err) {
+      console.error('Error deleting meeting:', err);
+      showToast('Error deleting meeting from database.');
+      throw err;
+    }
+  };
+
   // Handler for updating status of an action item via FastAPI / SQLite
   const handleUpdateStatus = async (actionId, newStatus) => {
     // Optimistic UI update
@@ -89,6 +120,7 @@ export default function App() {
       showToast('Error updating status in database.');
     }
   };
+
 
   // Handler for jumping to ActionTable with a pre-selected filter from Dashboard
   const handleFilterByStatus = (status) => {
@@ -182,6 +214,7 @@ export default function App() {
             <TranscriptInput
               meetings={meetings}
               onProcessMeeting={handleProcessMeeting}
+              onDeleteMeeting={handleDeleteMeeting}
               onSelectMeetingTranscript={() => {}}
               onSelectAction={setSelectedActionItem}
             />

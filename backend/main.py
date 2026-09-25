@@ -20,7 +20,8 @@ from database import (
     get_all_meetings_from_db,
     get_all_action_items_from_db,
     insert_meeting_and_actions,
-    update_status_in_db
+    update_status_in_db,
+    delete_meeting_from_db
 )
 
 # Lifespan context manager for database initialization
@@ -608,6 +609,19 @@ def process_meeting(req: ProcessMeetingRequest):
 @app.post("/api/meetings")
 def add_meeting(req: ProcessMeetingRequest):
     return process_meeting(req)
+
+# 3.1 Delete meeting and related action items
+@app.delete("/api/meetings/{meeting_id}")
+def delete_meeting(meeting_id: str):
+    try:
+        success = delete_meeting_from_db(meeting_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Meeting {meeting_id} not found.")
+        return {"success": True, "message": f"Meeting {meeting_id} and related action items deleted."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # 4. Get all action items
 @app.get("/api/action-items")

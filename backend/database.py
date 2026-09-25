@@ -278,3 +278,19 @@ def update_status_in_db(action_id: str, new_status: str):
     conn.commit()
     conn.close()
     return True
+
+def delete_meeting_from_db(meeting_id: str):
+    # Parse id (supports "mtg-123", "123", or int)
+    clean_id = int(str(meeting_id).replace("mtg-", "").split("-")[-1])
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    # Delete related action items first
+    cursor.execute("DELETE FROM action_items WHERE meeting_id = ?", (clean_id,))
+    # Delete meeting
+    cursor.execute("DELETE FROM meetings WHERE id = ?", (clean_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+    return deleted
+

@@ -45,3 +45,14 @@ export async function updateActionItemStatusApi(actionId, status) {
   }
   return await res.json();
 }
+
+export async function deleteMeetingApi(meetingId) {
+  const res = await fetch(`${API_BASE}/meetings/${meetingId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to delete meeting: ${res.statusText}`);
+  }
+  return await res.json();
+}
+

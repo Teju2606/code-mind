@@ -3131,3 +3131,149 @@ a {
   font-style: normal;
 }
 
+/* ==========================================================================
+   Delete Meeting Action & Confirmation Modal
+   ========================================================================== */
+
+.meeting-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 6px 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.btn-danger-outline:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #ef4444;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
+}
+
+.delete-confirm-modal {
+  max-width: 480px;
+  width: 90%;
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.delete-modal-header {
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border-default);
+  background: #ffffff;
+}
+
+.delete-modal-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delete-modal-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.delete-modal-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.delete-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.delete-confirm-prompt {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.delete-meeting-info-card {
+  background: #f8fafc;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.delete-info-title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.delete-info-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.delete-warning-subtext {
+  font-size: 0.82rem;
+  color: #b91c1c;
+  line-height: 1.5;
+  background: #fef2f2;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #ef4444;
+}
+
+.delete-modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--border-default);
+  background: #f8fafc;
+}
+
+
