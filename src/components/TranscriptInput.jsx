@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import VoiceRecorder from './VoiceRecorder';
 
 export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMeetingTranscript, onSelectAction }) {
   const [title, setTitle] = useState('');
@@ -8,6 +9,19 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
   const [lastExtractedItems, setLastExtractedItems] = useState(null);
   const [processedMeetingInfo, setProcessedMeetingInfo] = useState(null);
   const [selectedPastMeeting, setSelectedPastMeeting] = useState(null);
+
+  const intakeFormRef = useRef(null);
+
+  // Apply transcript recorded from VoiceRecorder
+  const handleApplyVoiceTranscript = (voiceText) => {
+    setTranscript(voiceText);
+    if (!title.trim()) {
+      setTitle(`Voice Meeting - ${date}`);
+    }
+    if (intakeFormRef.current) {
+      intakeFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Process meeting transcript via FastAPI backend (SQLite)
   const handleProcess = async (e) => {
@@ -52,13 +66,16 @@ export default function TranscriptInput({ meetings, onProcessMeeting, onSelectMe
             <span className="live-indicator"></span>
             <span>Automated AI Extraction Engine</span>
           </div>
-          <h2>Meeting Intake & Processing</h2>
-          <p>Add a meeting title, date, and transcript to save to SQLite and extract action items below</p>
+          <h2>Meeting Intake & Voice Transcription</h2>
+          <p>Record meeting audio live or enter a transcript to extract topics, commitments, and save to SQLite</p>
         </div>
       </div>
 
+      {/* Voice Recording Section */}
+      <VoiceRecorder onUseTranscript={handleApplyVoiceTranscript} />
+
       {/* 1. Meeting Title, 2. Meeting Date, 3. Transcript Text Box, 4. Process Meeting Button */}
-      <div className="form-card intake-form-card">
+      <div className="form-card intake-form-card" ref={intakeFormRef}>
         <form onSubmit={handleProcess}>
           <div className="form-grid-2">
             {/* 1. Meeting Title */}
