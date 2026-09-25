@@ -14,7 +14,7 @@ export default function ActionTable({
   const [sortBy, setSortBy] = useState('deadline-asc');
 
   // Extract unique owners for filter dropdown
-  const uniqueOwners = Array.from(new Set(actionItems.map(item => item.owner)));
+  const uniqueOwners = Array.from(new Set(actionItems.map(item => item.owner).filter(Boolean)));
 
   // Status counts for filter pills & summary
   const counts = {
@@ -42,8 +42,8 @@ export default function ActionTable({
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchAction = item.action.toLowerCase().includes(q);
-      const matchOwner = item.owner.toLowerCase().includes(q);
+      const matchAction = item.action?.toLowerCase().includes(q);
+      const matchOwner = item.owner?.toLowerCase().includes(q);
       const matchMeeting = item.meetingTitle?.toLowerCase().includes(q);
       if (!matchAction && !matchOwner && !matchMeeting) return false;
     }
@@ -59,10 +59,10 @@ export default function ActionTable({
       return new Date(b.deadline) - new Date(a.deadline);
     }
     if (sortBy === 'owner') {
-      return a.owner.localeCompare(b.owner);
+      return (a.owner || '').localeCompare(b.owner || '');
     }
     if (sortBy === 'status') {
-      return a.status.localeCompare(b.status);
+      return (a.status || '').localeCompare(b.status || '');
     }
     return 0;
   });
@@ -84,13 +84,18 @@ export default function ActionTable({
       {/* Page Header */}
       <div className="page-header">
         <div className="page-header-text">
-          <h2>Action Items</h2>
+          <div className="page-subtitle-tag">
+            <span className="live-indicator"></span>
+            <span>SQLite Commitment Tracking</span>
+          </div>
+          <h2>Action Items Registry</h2>
           <p>Extracted commitments with direct ownership, deadlines, and live status tracking</p>
         </div>
         <div className="page-header-actions">
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Showing {sortedItems.length} of {actionItems.length} items
-          </span>
+          <div className="items-counter-badge">
+            <span className="count-highlight">{sortedItems.length}</span>
+            <span>of {actionItems.length} items</span>
+          </div>
         </div>
       </div>
 
@@ -99,7 +104,7 @@ export default function ActionTable({
         {/* Toolbar: Search and Filter Pills */}
         <div className="table-toolbar">
           <div className="search-input-group">
-            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -107,78 +112,110 @@ export default function ActionTable({
               id="action-search-input"
               className="search-input"
               type="text"
-              placeholder="Search by action, owner, or meeting..."
+              placeholder="Search by action, owner, or meeting title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                className="search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <div className="filter-pills-group">
-            {['ALL', 'NEW', 'CARRIED_OVER', 'OVERDUE', 'COMPLETED'].map((st) => (
-              <button
-                key={st}
-                id={`filter-pill-${st.toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-')}`}
-                className={`filter-pill ${selectedStatus === st || (st === 'CARRIED_OVER' && selectedStatus === 'CARRIED OVER') ? 'active' : ''}`}
-                onClick={() => setSelectedStatus(st)}
-              >
-                <span>{st === 'ALL' ? 'All Items' : (st === 'CARRIED_OVER' ? 'Carried Over' : st)}</span>
-                <span className="filter-count">{counts[st] || 0}</span>
-              </button>
-            ))}
+            {[
+              { key: 'ALL', label: 'All Items' },
+              { key: 'NEW', label: 'New' },
+              { key: 'CARRIED_OVER', label: 'Carried Over' },
+              { key: 'OVERDUE', label: 'Overdue' },
+              { key: 'COMPLETED', label: 'Completed' }
+            ].map(({ key, label }) => {
+              const isActive = selectedStatus === key || (key === 'CARRIED_OVER' && selectedStatus === 'CARRIED OVER');
+              return (
+                <button
+                  key={key}
+                  id={`filter-pill-${key.toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-')}`}
+                  className={`filter-pill ${key.toLowerCase().replace(/_/g, '-')} ${isActive ? 'active' : ''}`}
+                  onClick={() => setSelectedStatus(key)}
+                >
+                  <span className={`pill-dot ${key.toLowerCase().replace(/_/g, '-')}`}></span>
+                  <span>{label}</span>
+                  <span className="filter-count">{counts[key] || 0}</span>
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="toolbar-dropdowns-group">
             {/* Owner filter dropdown */}
-            <select
-              id="owner-filter-select"
-              className="status-select-inline"
-              value={selectedOwner}
-              onChange={(e) => setSelectedOwner(e.target.value)}
-              style={{ padding: '6px 10px' }}
-            >
-              <option value="ALL">All Owners ({uniqueOwners.length})</option>
-              {uniqueOwners.map(owner => (
-                <option key={owner} value={owner}>{owner}</option>
-              ))}
-            </select>
+            <div className="select-wrapper">
+              <select
+                id="owner-filter-select"
+                className="status-select-inline"
+                value={selectedOwner}
+                onChange={(e) => setSelectedOwner(e.target.value)}
+              >
+                <option value="ALL">All Owners ({uniqueOwners.length})</option>
+                {uniqueOwners.map(owner => (
+                  <option key={owner} value={owner}>{owner}</option>
+                ))}
+              </select>
+            </div>
 
             {/* Sort dropdown */}
-            <select
-              id="sort-select"
-              className="status-select-inline"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{ padding: '6px 10px' }}
-            >
-              <option value="deadline-asc">Deadline (Earliest)</option>
-              <option value="deadline-desc">Deadline (Latest)</option>
-              <option value="owner">Owner (A-Z)</option>
-              <option value="status">Status</option>
-            </select>
+            <div className="select-wrapper">
+              <select
+                id="sort-select"
+                className="status-select-inline"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="deadline-asc">Deadline (Earliest)</option>
+                <option value="deadline-desc">Deadline (Latest)</option>
+                <option value="owner">Owner (A-Z)</option>
+                <option value="status">Status</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Action Items Table */}
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive">
           <table className="enterprise-table" id="action-items-table">
             <thead>
               <tr>
-                <th style={{ width: '40%' }}>Action</th>
+                <th style={{ width: '42%' }}>Action</th>
                 <th style={{ width: '22%' }}>Owner</th>
                 <th style={{ width: '16%' }}>Deadline</th>
-                <th style={{ width: '14%' }}>Status</th>
+                <th style={{ width: '12%' }}>Status</th>
                 <th style={{ width: '8%', textAlign: 'right' }}>Audit</th>
               </tr>
             </thead>
             <tbody>
               {sortedItems.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 8px', display: 'block', opacity: 0.5 }}>
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    {actionItems.length === 0 ? 'No action items yet' : 'No action items match your search or filter.'}
+                  <td colSpan="5" className="table-empty-cell">
+                    <div className="empty-state-wrap">
+                      <div className="empty-state-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                      </div>
+                      <div className="empty-state-title">
+                        {actionItems.length === 0 ? 'No action items yet' : 'No matching action items found'}
+                      </div>
+                      <div className="empty-state-desc">
+                        {actionItems.length === 0
+                          ? 'Process a new meeting transcript to automatically extract accountability tasks.'
+                          : 'Try adjusting your search query, status filters, or selected owner.'}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -187,7 +224,8 @@ export default function ActionTable({
                     key={item.id}
                     id={`action-row-${item.id}`}
                     onClick={() => onSelectAction(item)}
-                    title="Click to view audit details"
+                    className={`table-row-interactive ${item.status === 'OVERDUE' ? 'row-overdue' : ''}`}
+                    title="Click to view full audit trail"
                   >
                     {/* 1. Action */}
                     <td className="table-action-cell">
@@ -207,7 +245,7 @@ export default function ActionTable({
                           className="owner-avatar"
                           style={{ backgroundColor: item.ownerColor || '#2563eb' }}
                         >
-                          {item.ownerInitials || item.owner.slice(0, 2).toUpperCase()}
+                          {item.ownerInitials || item.owner?.slice(0, 2).toUpperCase() || 'TM'}
                         </div>
                         <div className="owner-info">
                           <span className="owner-name">{item.owner}</span>
@@ -227,47 +265,39 @@ export default function ActionTable({
                       </div>
                     </td>
 
-                    {/* 4. Status: Status Dropdown (NEW, CARRIED_OVER, OVERDUE, COMPLETED) */}
+                    {/* 4. Status Dropdown */}
                     <td onClick={(e) => e.stopPropagation()}>
-                      <select
-                        id={`status-select-${item.id}`}
-                        className={getStatusClass(item.status)}
-                        value={item.status === 'CARRIED OVER' ? 'CARRIED_OVER' : item.status}
-                        onChange={(e) => onUpdateStatus(item.id, e.target.value)}
-                        style={{
-                          cursor: 'pointer',
-                          outline: 'none',
-                          fontWeight: 700,
-                          fontSize: '0.74rem',
-                          padding: '4px 10px',
-                          borderRadius: 'var(--radius-full)',
-                          border: '1px solid currentColor',
-                          appearance: 'auto'
-                        }}
-                      >
-                        {STATUS_OPTIONS.map(opt => (
-                          <option key={opt} value={opt} style={{ color: '#0f172a', background: '#ffffff', fontWeight: 600 }}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="status-select-container">
+                        <select
+                          id={`status-select-${item.id}`}
+                          className={getStatusClass(item.status)}
+                          value={item.status === 'CARRIED OVER' ? 'CARRIED_OVER' : item.status}
+                          onChange={(e) => onUpdateStatus(item.id, e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map(opt => (
+                            <option key={opt} value={opt} style={{ color: '#0f172a', background: '#ffffff', fontWeight: 600 }}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </td>
 
-                    {/* 5. Audit inspect button */}
+                    {/* 5. Audit Button */}
                     <td style={{ textAlign: 'right' }}>
                       <button
                         id={`btn-audit-${item.id}`}
-                        className="btn btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm audit-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectAction(item);
                         }}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
                           <circle cx="12" cy="12" r="3"/>
                         </svg>
-                        Audit
+                        <span>Audit</span>
                       </button>
                     </td>
                   </tr>
